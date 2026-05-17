@@ -511,9 +511,10 @@
      title       — short name of the event
      type        — one of: cinema | gaming | afterwork | cultural |
                           party | dinner | outdoor | other
-     datetime    — ISO 8601 string. Examples:
+     datetime    — ISO 8601 string, or null when the date is not yet set.
                           "2026-05-23T20:00"        (local time)
                           "2026-05-23T20:00:00+02:00" (with tz offset)
+                          null                      (displays as "TBA")
      location    — where it's happening (free text)
      description — one or two sentences. Optional but recommended.
      party       — array of attendees' names. Optional.
@@ -632,16 +633,21 @@ const QUESTS = [
     datetime: "2026-05-22T18:30",
     location: "Ground Control, 81 Rue du Charolais, 75012",
     description: "Afterwork du vendredi",
-    party: ["Tous ceux qui peuvent venir"]
   },
   {
     id: 11,
     title: "Parc Astérix",
     type: "outdoor",
-    datetime: "2026-06-07",
+    datetime: null,
     location: "Parc Astérix, 60128 Plailly",
-    party: ["Les Cools Kids"],
-    cost: "42€ en promo jusqu'au 9 juillet"
+    cost: "42€ en promo jusqu'au 9 juillet",
+  },
+  {
+    id: 12,
+    title: "Escape game",
+    type: "party",
+    datetime: null,
+    description: "Soirée CSE",
   },
 ];
 
@@ -678,6 +684,7 @@ function svgPath(d, viewBox = "0 0 16 16") {
 }
 
 function fmtDateLine(dt) {
+  if (!dt) return "TBA";
   // "FRI · MAY 22"
   const d = new Date(dt);
   const wk = d.toLocaleDateString('en', { weekday: 'short' }).toUpperCase();
@@ -686,11 +693,13 @@ function fmtDateLine(dt) {
 }
 
 function fmtTime(dt) {
+  if (!dt) return "";
   const d = new Date(dt);
   return d.toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit', hour12: false });
 }
 
 function relativeWhen(dt) {
+  if (!dt) return "";
   const now = new Date();
   const target = new Date(dt);
   const diffMs = target - now;
@@ -710,6 +719,7 @@ function relativeWhen(dt) {
 }
 
 function groupKey(dt) {
+  if (!dt) return { key: "7-tba", label: "Date TBA", meta: "to be announced" };
   // Returns the chapter section this quest belongs in
   const now = new Date();
   const target = new Date(dt);
@@ -729,8 +739,8 @@ function groupKey(dt) {
 
 function renderQuest(q, index) {
   const t = QUEST_TYPES[q.type] || QUEST_TYPES.other;
-  const date = new Date(q.datetime);
-  const imminent = (date - new Date()) < 1000 * 60 * 60 * 36 && date > new Date();
+  const date = q.datetime ? new Date(q.datetime) : null;
+  const imminent = date && (date - new Date()) < 1000 * 60 * 60 * 36 && date > new Date();
 
   const meta = [];
   if (q.location) {
@@ -772,8 +782,8 @@ function renderQuest(q, index) {
           <span>${t.label}</span>
         </div>
         <div class="quest-when">
-          <div class="when-date">${fmtDateLine(q.datetime)} · ${fmtTime(q.datetime)}</div>
-          <span class="when-rel">${relativeWhen(q.datetime)}</span>
+          <div class="when-date">${q.datetime ? `${fmtDateLine(q.datetime)} · ${fmtTime(q.datetime)}` : 'TBA'}</div>
+          ${relativeWhen(q.datetime) ? `<span class="when-rel">${relativeWhen(q.datetime)}</span>` : ''}
         </div>
       </div>
       <h3 class="quest-title">${escapeHtml(q.title)}</h3>
@@ -785,8 +795,9 @@ function renderQuest(q, index) {
 
 function renderArchiveItem(q) {
   const t = QUEST_TYPES[q.type] || QUEST_TYPES.other;
-  const d = new Date(q.datetime);
-  const dateStr = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  const dateStr = q.datetime
+    ? new Date(q.datetime).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()
+    : 'TBA';
   return `
     <div class="archive-item">
       <div class="archive-date">${dateStr}</div>
@@ -805,7 +816,12 @@ function escapeHtml(s) {
 function escapeAttr(s) { return escapeHtml(s); }
 
 function render() {
-  const sorted = [...QUESTS].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  const sorted = [...QUESTS].sort((a, b) => {
+    if (!a.datetime && !b.datetime) return 0;
+    if (!a.datetime) return 1;
+    if (!b.datetime) return -1;
+    return new Date(a.datetime) - new Date(b.datetime);
+  });
 
   const upcoming = [];
   const past = [];
