@@ -526,7 +526,7 @@
    Past quests automatically fall into the "Completed Quests" archive.
    Sorting is automatic (chronological).
    ================================================================= */
-
+/*
 const QUESTS = [
   {
     id: 1,
@@ -599,7 +599,7 @@ const QUESTS = [
     link: ""
   },
 
-  /* ----- Past quests (automatically routed to the archive) ----- */
+  /* ----- Past quests (automatically routed to the archive) ----- 
   {
     id: 90,
     title: "Pizza Night at Marc's",
@@ -622,6 +622,27 @@ const QUESTS = [
     datetime: "2026-05-02T18:30",
     location: "Le Petit Cardinal"
   }
+];
+*/
+const QUESTS = [
+  {
+    id: 10,
+    title: "Afterwork — Ground Control",
+    type: "afterwork",
+    datetime: "2026-05-22T18:30",
+    location: "Ground Control, 81 Rue du Charolais, 75012",
+    description: "Afterwork du vendredi",
+    party: ["Tous ceux qui peuvent venir"]
+  },
+  {
+    id: 11,
+    title: "Parc Astérix",
+    type: "outdoor",
+    datetime: "2026-06-07",
+    location: "Parc Astérix, 60128 Plailly",
+    party: ["Les Cools Kids"],
+    cost: "42€ en promo jusqu'au 9 juillet"
+  },
 ];
 
 /* =================================================================
