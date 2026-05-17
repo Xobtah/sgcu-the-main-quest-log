@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Quest Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- =================================================================
+     THE QUEST LOG — events app for the-main-quest ecosystem
+     =================================================================
+     To edit the events list, scroll down to the QUESTS array
+     (it's right at the top of the <script> block, with comments).
+     ================================================================= -->
+
+<style>
+  :root {
+    /* Parchment palette */
+    --paper:        #f1e6c9;
+    --paper-deep:   #e7d8b1;
+    --paper-edge:   #c9b888;
+    --ink:          #2b2014;
+    --ink-soft:     #4a3a26;
+    --ink-faint:    #8a7a5d;
+    --rule:         #b8a473;
+    --oxblood:      #7a2c28;
+    --oxblood-deep: #5a1f1c;
+    --gold:         #a37c30;
+    --gold-bright:  #c79a3e;
+    --seal-red:     #8e2a26;
+
+    /* Quest type seal colors (muted, manuscript-friendly) */
+    --type-cinema:    #2f4858;
+    --type-gaming:    #4a2d5c;
+    --type-afterwork: #8a5a1c;
+    --type-cultural:  #6a2738;
+    --type-party:     #983a5a;
+    --type-dinner:    #3a5a2e;
+    --type-outdoor:   #4a6a3a;
+    --type-other:     #4a4a52;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "EB Garamond", "Garamond", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+
+  /* ----- Paper texture: layered noise + warm vignette ----- */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 245, 215, 0.45), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(120, 90, 40, 0.18), transparent 60%),
+      radial-gradient(ellipse at 15% 25%, rgba(180, 140, 70, 0.08), transparent 40%),
+      radial-gradient(ellipse at 85% 75%, rgba(180, 140, 70, 0.10), transparent 40%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.14  0 0 0 0 0.08  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+  }
+
+  /* ============ HEADER ============ */
+  header.codex-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .codex-eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 18px;
+  }
+  .codex-title {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 500;
+    font-size: clamp(48px, 7vw, 72px);
+    line-height: 1;
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .codex-title em {
+    font-style: italic;
+    color: var(--oxblood);
+    font-weight: 500;
+  }
+  .codex-subtitle {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    font-weight: 400;
+  }
+  .codex-stat {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 22px;
+  }
+  .codex-stat strong {
+    color: var(--oxblood);
+    font-weight: 500;
+  }
+
+  /* Decorative divider (fleuron) */
+  .fleuron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin: 36px 0;
+    color: var(--gold);
+  }
+  .fleuron::before, .fleuron::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--rule), transparent);
+    max-width: 180px;
+  }
+  .fleuron svg {
+    flex-shrink: 0;
+  }
+
+  /* ============ SECTIONS ============ */
+  section.chapter {
+    margin-bottom: 56px;
+  }
+  .chapter-heading {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 30px;
+    font-weight: 500;
+    color: var(--oxblood);
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+  }
+  .chapter-heading::before {
+    content: "❧ ";
+    color: var(--gold);
+    margin-right: 6px;
+    font-size: 24px;
+    vertical-align: middle;
+  }
+  .chapter-meta {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 22px;
+    padding-left: 28px;
+  }
+
+  /* ============ QUEST CARDS ============ */
+  .quest {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255, 250, 230, 0.55), rgba(241, 230, 201, 0.0)),
+      var(--paper-deep);
+    border: 1px solid var(--paper-edge);
+    border-radius: 2px;
+    padding: 22px 26px 22px 30px;
+    margin-bottom: 18px;
+    box-shadow:
+      0 1px 0 rgba(255, 250, 230, 0.5) inset,
+      0 1px 2px rgba(50, 30, 10, 0.08),
+      0 8px 18px -10px rgba(50, 30, 10, 0.12);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .quest:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 rgba(255, 250, 230, 0.5) inset,
+      0 2px 4px rgba(50, 30, 10, 0.1),
+      0 16px 28px -14px rgba(50, 30, 10, 0.22);
+  }
+  .quest.imminent::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--oxblood);
+  }
+
+  .quest-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .quest-seal {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--seal-color, var(--type-other));
+  }
+  .quest-seal-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--seal-color, var(--type-other));
+    color: var(--paper);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.25) inset,
+      0 -1px 1px rgba(0,0,0,0.2) inset,
+      0 1px 2px rgba(0,0,0,0.2);
+  }
+  .quest-seal-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+  .quest-when {
+    text-align: right;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    flex-shrink: 0;
+  }
+  .quest-when .when-date {
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .quest-when .when-rel {
+    display: block;
+    margin-top: 2px;
+    font-style: italic;
+    font-family: "EB Garamond", serif;
+    font-size: 13px;
+    letter-spacing: 0;
+    color: var(--oxblood);
+    text-transform: none;
+  }
+
+  .quest-title {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin: 4px 0 10px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .quest-desc {
+    font-size: 16px;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    font-style: italic;
+  }
+  .quest-desc::before {
+    content: "“";
+    font-family: "Cormorant Garamond", serif;
+    font-size: 26px;
+    color: var(--gold);
+    vertical-align: -8px;
+    margin-right: 2px;
+  }
+  .quest-desc::after {
+    content: "”";
+    font-family: "Cormorant Garamond", serif;
+    font-size: 26px;
+    color: var(--gold);
+    vertical-align: -8px;
+    margin-left: 2px;
+  }
+
+  .quest-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 22px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--rule);
+  }
+  .quest-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .quest-meta-item svg {
+    width: 14px;
+    height: 14px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+  .quest-meta-item a {
+    color: var(--oxblood);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--oxblood);
+  }
+  .quest-meta-item a:hover {
+    border-bottom-style: solid;
+  }
+  .party-list {
+    font-style: italic;
+  }
+  .party-list .party-extra {
+    color: var(--ink-faint);
+    font-style: normal;
+    margin-left: 4px;
+  }
+
+  /* ============ EMPTY STATE ============ */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+  }
+  .empty-state h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 28px;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  .empty-state p {
+    font-size: 16px;
+    max-width: 380px;
+    margin: 0 auto;
+    font-style: italic;
+  }
+
+  /* ============ ARCHIVE (past quests) ============ */
+  details.archive {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  details.archive > summary {
+    list-style: none;
+    cursor: pointer;
+    text-align: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 8px;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  details.archive > summary:hover {
+    color: var(--oxblood);
+  }
+  details.archive > summary::-webkit-details-marker { display: none; }
+  details.archive > summary::after {
+    content: " ▾";
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  details.archive[open] > summary::after {
+    content: " ▴";
+  }
+  .archive-list {
+    margin-top: 24px;
+  }
+  .archive-item {
+    display: flex;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px dotted var(--rule);
+    align-items: baseline;
+    opacity: 0.7;
+  }
+  .archive-item:last-child { border-bottom: none; }
+  .archive-date {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    flex-shrink: 0;
+    width: 96px;
+    text-transform: uppercase;
+  }
+  .archive-title {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 17px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .archive-type {
+    margin-left: auto;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  /* ============ FOOTER FLOURISH ============ */
+  .end-mark {
+    text-align: center;
+    margin-top: 48px;
+    color: var(--gold);
+    opacity: 0.6;
+  }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .quest, .chapter-heading, .chapter-meta {
+    animation: fadeIn 0.5s ease backwards;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 560px) {
+    main { padding: 36px 18px 64px; }
+    .quest { padding: 18px 18px 18px 22px; }
+    .quest-top { flex-direction: column; gap: 8px; }
+    .quest-when { text-align: left; }
+    .quest-title { font-size: 22px; }
+    .codex-title { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<main>
+
+<header class="codex-header">
+  <div class="codex-eyebrow">Liber Aventurarum · Vol. I</div>
+  <h1 class="codex-title">The <em>Quest</em> Log</h1>
+  <div class="codex-subtitle">Adventures upcoming, dutifully recorded.</div>
+  <div class="codex-stat" id="header-stat">—</div>
+  <div class="fleuron">
+    <!-- Hand-styled fleuron / ornament -->
+    <svg width="40" height="20" viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+      <path d="M2 10 Q 10 2, 20 10 T 38 10" />
+      <circle cx="20" cy="10" r="2.5" fill="currentColor" stroke="none"/>
+      <circle cx="6" cy="10" r="0.8" fill="currentColor" stroke="none"/>
+      <circle cx="34" cy="10" r="0.8" fill="currentColor" stroke="none"/>
+    </svg>
+  </div>
+</header>
+
+<div id="quest-feed"></div>
+
+<details class="archive" id="archive-section">
+  <summary>Completed Quests <span id="archive-count"></span></summary>
+  <div class="archive-list" id="archive-list"></div>
+</details>
+
+<div class="end-mark">
+  <svg width="48" height="16" viewBox="0 0 48 16" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+    <path d="M2 8 L 18 8" />
+    <path d="M30 8 L 46 8" />
+    <path d="M24 2 L 20 8 L 24 14 L 28 8 Z" fill="currentColor" stroke="none"/>
+  </svg>
+</div>
+
+</main>
+
+<script>
+/* =================================================================
+   QUEST DATA
+   =================================================================
+   To add, remove, or edit a quest, modify the array below.
+
+   Fields per quest:
+     id          — unique number (anything, just keep them unique)
+     title       — short name of the event
+     type        — one of: cinema | gaming | afterwork | cultural |
+                          party | dinner | outdoor | other
+     datetime    — ISO 8601 string. Examples:
+                          "2026-05-23T20:00"        (local time)
+                          "2026-05-23T20:00:00+02:00" (with tz offset)
+     location    — where it's happening (free text)
+     description — one or two sentences. Optional but recommended.
+     party       — array of attendees' names. Optional.
+                          e.g. ["Alex", "Sam", "Jordan"]
+     cost        — free text, e.g. "12 €", "free", "bring a bottle"
+                          Optional.
+     link        — URL for tickets, venue page, event listing, etc.
+                          Optional.
+
+   Past quests automatically fall into the "Completed Quests" archive.
+   Sorting is automatic (chronological).
+   ================================================================= */
+
+const QUESTS = [
+  {
+    id: 1,
+    title: "Mission: Impossible — The Final Reckoning",
+    type: "cinema",
+    datetime: "2026-05-20T20:30",
+    location: "UGC Les Halles, Paris",
+    description: "Tom Cruise hangs off one last thing. We owe it to him.",
+    party: ["Alex", "Sam", "Jordan", "Camille"],
+    cost: "12 €",
+    link: "https://www.ugc.fr/"
+  },
+  {
+    id: 2,
+    title: "Friday Afterwork — The Frog & British Library",
+    type: "afterwork",
+    datetime: "2026-05-22T18:30",
+    location: "The Frog & British Library, 75002",
+    description: "The usual round. Pints, debrief, gentle gossip.",
+    party: ["Everyone who can make it"]
+  },
+  {
+    id: 3,
+    title: "Catan Night — Settlers' Reunion",
+    type: "gaming",
+    datetime: "2026-05-24T19:00",
+    location: "Marc's place (10 rue de Bretagne)",
+    description: "Bring snacks. We have unfinished business with the robber.",
+    party: ["Marc", "Léa", "Théo", "Inès", "Hugo"],
+    cost: "Bring something to share"
+  },
+  {
+    id: 4,
+    title: "Manet / Degas — Musée d'Orsay",
+    type: "cultural",
+    datetime: "2026-05-28T14:00",
+    location: "Musée d'Orsay, 7e arr.",
+    description: "Last weekend of the exhibition. Reservations strongly advised.",
+    party: ["Camille", "Théo"],
+    cost: "16 €",
+    link: "https://www.musee-orsay.fr/"
+  },
+  {
+    id: 5,
+    title: "Léa's Birthday Bash",
+    type: "party",
+    datetime: "2026-06-06T20:00",
+    location: "Le Perchoir Marais, rooftop",
+    description: "Dress code: vaguely fancy. Léa turns 30, we celebrate her like she's 18.",
+    party: ["Léa", "Marc", "Alex", "Sam", "Inès", "Théo", "Jordan", "+8"],
+    cost: "20 € drinks kitty"
+  },
+  {
+    id: 6,
+    title: "Sunday Hike — Forêt de Fontainebleau",
+    type: "outdoor",
+    datetime: "2026-06-14T09:30",
+    location: "Bois-le-Roi station, RER R",
+    description: "10 km loop through the boulders. Pack water and a sandwich.",
+    party: ["Alex", "Inès", "Hugo"]
+  },
+  {
+    id: 7,
+    title: "Mario Kart World Championship (Internal)",
+    type: "gaming",
+    datetime: "2026-06-21T15:00",
+    location: "The office lounge",
+    description: "Bracket-style. Loser buys the next afterwork.",
+    party: ["Everyone interested"],
+    link: ""
+  },
+
+  /* ----- Past quests (automatically routed to the archive) ----- */
+  {
+    id: 90,
+    title: "Pizza Night at Marc's",
+    type: "dinner",
+    datetime: "2026-04-12T19:30",
+    location: "Marc's place",
+    description: "The Hawaiian debate was settled. Or so we thought."
+  },
+  {
+    id: 91,
+    title: "Dune: Part Two re-watch",
+    type: "cinema",
+    datetime: "2026-04-25T21:00",
+    location: "Le Grand Rex"
+  },
+  {
+    id: 92,
+    title: "Afterwork — Spring Edition",
+    type: "afterwork",
+    datetime: "2026-05-02T18:30",
+    location: "Le Petit Cardinal"
+  }
+];
+
+/* =================================================================
+   QUEST TYPE METADATA — edit icons/colors here if desired
+   ================================================================= */
+const QUEST_TYPES = {
+  cinema:    { label: "Cinema",    color: "var(--type-cinema)",    icon: 'M2 2 H14 V14 H2 Z M4 2 V14 M12 2 V14 M2 5 H4 M12 5 H14 M2 8 H4 M12 8 H14 M2 11 H4 M12 11 H14' },
+  gaming:    { label: "Gaming",    color: "var(--type-gaming)",    icon: 'M3 5 H13 A2 2 0 0 1 15 7 V11 A2 2 0 0 1 13 13 H10 L8 11 L6 13 H3 A2 2 0 0 1 1 11 V7 A2 2 0 0 1 3 5 Z M5 9 H7 M6 8 V10 M11 9 H11.01 M12.5 7.5 H12.51' },
+  afterwork: { label: "Afterwork", color: "var(--type-afterwork)", icon: 'M3 2 H13 L11 9 V13 H5 V9 L3 2 Z M3.5 4 H12.5' },
+  cultural:  { label: "Cultural",  color: "var(--type-cultural)",  icon: 'M2 14 H14 M3 14 V6 M13 14 V6 M5 14 V6 M7 14 V6 M9 14 V6 M11 14 V6 M2 6 L8 2 L14 6 Z' },
+  party:     { label: "Party",     color: "var(--type-party)",     icon: 'M3 14 L8 3 L13 14 Z M5.5 9 L10.5 9 M6.5 6.5 H6.51 M8 4 H8.01 M9.5 6.5 H9.51' },
+  dinner:    { label: "Dinner",    color: "var(--type-dinner)",    icon: 'M4 2 V8 A2 2 0 0 0 6 10 V14 M4 5 H6 M5 2 V5 M11 2 C11 2 9 4 9 7 C9 9 11 10 11 10 V14' },
+  outdoor:   { label: "Outdoor",   color: "var(--type-outdoor)",   icon: 'M2 14 L6 6 L9 11 L11 8 L14 14 Z M5 5 A1.5 1.5 0 1 1 4.99 5' },
+  other:     { label: "Quest",     color: "var(--type-other)",     icon: 'M8 2 L9.5 6 L14 6.5 L10.5 9.5 L11.5 14 L8 11.5 L4.5 14 L5.5 9.5 L2 6.5 L6.5 6 Z' }
+};
+
+/* =================================================================
+   ICONS for meta rows
+   ================================================================= */
+const META_ICONS = {
+  location: 'M8 1 C5 1 3 3 3 6 C3 10 8 15 8 15 C8 15 13 10 13 6 C13 3 11 1 8 1 Z M8 4 A2 2 0 1 1 8 8 A2 2 0 0 1 8 4 Z',
+  party:    'M5 6 A2 2 0 1 1 5 5.99 M11 6 A2 2 0 1 1 11 5.99 M2 13 C2 11 3.5 9.5 5 9.5 C6.5 9.5 8 11 8 13 M8 13 C8 11 9.5 9.5 11 9.5 C12.5 9.5 14 11 14 13',
+  cost:     'M8 1 V15 M11 4 H6 A2 2 0 0 0 6 8 H10 A2 2 0 0 1 10 12 H5',
+  link:     'M6 9 L10 5 M5 10 L3 12 A2.5 2.5 0 0 1 -0.5 8.5 L1.5 6.5 A2.5 2.5 0 0 1 5 6.5 M11 6 L13 4 A2.5 2.5 0 0 1 16.5 7.5 L14.5 9.5 A2.5 2.5 0 0 1 11 9.5'
+};
+
+/* =================================================================
+   RENDERING
+   ================================================================= */
+
+function svgPath(d, viewBox = "0 0 16 16") {
+  return `<svg viewBox="${viewBox}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+}
+
+function fmtDateLine(dt) {
+  // "FRI · MAY 22"
+  const d = new Date(dt);
+  const wk = d.toLocaleDateString('en', { weekday: 'short' }).toUpperCase();
+  const md = d.toLocaleDateString('en', { month: 'short', day: 'numeric' }).toUpperCase();
+  return `${wk} · ${md}`;
+}
+
+function fmtTime(dt) {
+  const d = new Date(dt);
+  return d.toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit', hour12: false });
+}
+
+function relativeWhen(dt) {
+  const now = new Date();
+  const target = new Date(dt);
+  const diffMs = target - now;
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const diffHrs = Math.round(diffMs / (1000 * 60 * 60));
+
+  if (diffMs < 0) return "past";
+  if (diffHrs < 1) return "soon";
+  if (diffHrs < 24 && target.getDate() === now.getDate()) return `in ${diffHrs} h`;
+  if (diffDays === 0) return "tonight";
+  if (diffDays === 1) return "tomorrow";
+  if (diffDays < 7)  return `in ${diffDays} days`;
+  if (diffDays < 14) return "next week";
+  if (diffDays < 30) return `in ${diffDays} days`;
+  const months = Math.round(diffDays / 30);
+  return months === 1 ? "in a month" : `in ${months} months`;
+}
+
+function groupKey(dt) {
+  // Returns the chapter section this quest belongs in
+  const now = new Date();
+  const target = new Date(dt);
+  const dayMs = 1000 * 60 * 60 * 24;
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor((target - startOfDay) / dayMs);
+
+  if (diffDays < 0) return null; // past — goes to archive
+  if (diffDays === 0) return { key: "0-today",     label: "Today",      meta: "happening now" };
+  if (diffDays === 1) return { key: "1-tomorrow",  label: "Tomorrow",   meta: "stand ready" };
+  if (diffDays < 7)   return { key: "2-this-week", label: "This Week",  meta: "the immediate horizon" };
+  if (diffDays < 14)  return { key: "3-next-week", label: "Next Week",  meta: "the week to come" };
+  if (diffDays < 30)  return { key: "4-month",     label: "Later This Month", meta: "thirty days hence" };
+  if (diffDays < 90)  return { key: "5-season",    label: "The Season Ahead", meta: "the longer road" };
+  return                       { key: "6-beyond",   label: "Beyond",     meta: "in the distant ages" };
+}
+
+function renderQuest(q, index) {
+  const t = QUEST_TYPES[q.type] || QUEST_TYPES.other;
+  const date = new Date(q.datetime);
+  const imminent = (date - new Date()) < 1000 * 60 * 60 * 36 && date > new Date();
+
+  const meta = [];
+  if (q.location) {
+    meta.push(`
+      <span class="quest-meta-item">
+        ${svgPath(META_ICONS.location)}
+        ${escapeHtml(q.location)}
+      </span>`);
+  }
+  if (q.party && q.party.length) {
+    const visible = q.party.slice(0, 3).map(escapeHtml).join(', ');
+    const extra = q.party.length > 3 ? `<span class="party-extra">+${q.party.length - 3}</span>` : '';
+    meta.push(`
+      <span class="quest-meta-item">
+        ${svgPath(META_ICONS.party)}
+        <span class="party-list">${visible}${extra}</span>
+      </span>`);
+  }
+  if (q.cost) {
+    meta.push(`
+      <span class="quest-meta-item">
+        ${svgPath(META_ICONS.cost)}
+        ${escapeHtml(q.cost)}
+      </span>`);
+  }
+  if (q.link) {
+    meta.push(`
+      <span class="quest-meta-item">
+        ${svgPath(META_ICONS.link)}
+        <a href="${escapeAttr(q.link)}" target="_blank" rel="noopener">view venue</a>
+      </span>`);
+  }
+
+  return `
+    <article class="quest ${imminent ? 'imminent' : ''}" style="--seal-color: ${t.color}; animation-delay: ${index * 60}ms">
+      <div class="quest-top">
+        <div class="quest-seal">
+          <span class="quest-seal-icon">${svgPath(t.icon)}</span>
+          <span>${t.label}</span>
+        </div>
+        <div class="quest-when">
+          <div class="when-date">${fmtDateLine(q.datetime)} · ${fmtTime(q.datetime)}</div>
+          <span class="when-rel">${relativeWhen(q.datetime)}</span>
+        </div>
+      </div>
+      <h3 class="quest-title">${escapeHtml(q.title)}</h3>
+      ${q.description ? `<p class="quest-desc">${escapeHtml(q.description)}</p>` : ''}
+      ${meta.length ? `<div class="quest-meta">${meta.join('')}</div>` : ''}
+    </article>
+  `;
+}
+
+function renderArchiveItem(q) {
+  const t = QUEST_TYPES[q.type] || QUEST_TYPES.other;
+  const d = new Date(q.datetime);
+  const dateStr = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  return `
+    <div class="archive-item">
+      <div class="archive-date">${dateStr}</div>
+      <div class="archive-title">${escapeHtml(q.title)}</div>
+      <div class="archive-type" style="color: ${t.color}">${t.label}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+function render() {
+  const sorted = [...QUESTS].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+  const upcoming = [];
+  const past = [];
+  for (const q of sorted) {
+    const g = groupKey(q.datetime);
+    if (g === null) past.push(q);
+    else upcoming.push({ q, g });
+  }
+
+  // Stats in header
+  const stat = document.getElementById('header-stat');
+  if (upcoming.length === 0) {
+    stat.innerHTML = `<strong>The realm is quiet.</strong>`;
+  } else if (upcoming.length === 1) {
+    stat.innerHTML = `<strong>1</strong> quest awaits`;
+  } else {
+    stat.innerHTML = `<strong>${upcoming.length}</strong> quests await`;
+  }
+
+  // Group by chapter
+  const groups = {};
+  for (const { q, g } of upcoming) {
+    if (!groups[g.key]) groups[g.key] = { ...g, items: [] };
+    groups[g.key].items.push(q);
+  }
+
+  const feed = document.getElementById('quest-feed');
+
+  if (upcoming.length === 0) {
+    feed.innerHTML = `
+      <div class="empty-state">
+        <h2>No quests await.</h2>
+        <p>The realm is at peace, the adventurers idle. Add an entry to the <code>QUESTS</code> array to summon a new gathering.</p>
+      </div>
+    `;
+  } else {
+    let qIndex = 0;
+    feed.innerHTML = Object.keys(groups).sort().map(k => {
+      const g = groups[k];
+      const cards = g.items.map(q => renderQuest(q, qIndex++)).join('');
+      return `
+        <section class="chapter">
+          <h2 class="chapter-heading">${g.label}</h2>
+          <div class="chapter-meta">${g.meta} · ${g.items.length} ${g.items.length === 1 ? 'quest' : 'quests'}</div>
+          ${cards}
+        </section>
+      `;
+    }).join('');
+  }
+
+  // Archive
+  const archiveSection = document.getElementById('archive-section');
+  const archiveList = document.getElementById('archive-list');
+  const archiveCount = document.getElementById('archive-count');
+  if (past.length === 0) {
+    archiveSection.style.display = 'none';
+  } else {
+    archiveSection.style.display = 'block';
+    archiveCount.textContent = `(${past.length})`;
+    // Past quests in reverse chronological order (most recent first)
+    archiveList.innerHTML = past.reverse().map(renderArchiveItem).join('');
+  }
+}
+
+render();
+
+// Re-render once a minute so relative times stay fresh
+setInterval(render, 60_000);
+</script>
+
+</body>
+</html>
